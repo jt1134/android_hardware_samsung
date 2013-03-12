@@ -27,10 +27,17 @@
 #include <hardware/power.h>
 
 #define SCALING_GOVERNOR_PATH "/sys/devices/system/cpu/cpu0/cpufreq/scaling_governor"
+#define SCALING_MAX_FREQ_PATH "/sys/devices/system/cpu/cpu0/cpufreq/scaling_max_freq"
 #define BOOSTPULSE_ONDEMAND "/sys/devices/system/cpu/cpufreq/ondemand/boostpulse"
 #define BOOSTPULSE_INTERACTIVE "/sys/devices/system/cpu/cpufreq/interactive/boostpulse"
 #define TIMER_RATE_SCREEN_ON "30000"
 #define TIMER_RATE_SCREEN_OFF "150000"
+
+#define MAX_BUF_SZ  10
+
+/* initialize to something safe */
+static char screen_off_max_freq[MAX_BUF_SZ] = "400000";
+static char scaling_max_freq[MAX_BUF_SZ] = "1000000";
 
 struct s5pc110_power_module {
     struct power_module base;
@@ -110,6 +117,29 @@ static int get_scaling_governor() {
 
 static void s5pc110_power_set_interactive(struct power_module *module, int on)
 {
+    int len;
+    char buf[MAX_BUF_SZ];
+
+    /*
+     * Lower maximum frequency when screen is off.
+     */
+    if (!on) {
+        /* read the current scaling max freq and save it before updating */
+        len = sysfs_read(SCALING_MAX_FREQ_PATH, buf, sizeof(buf));
+
+        /* make sure it's not the screen off freq, if the "on"
+         * call is skipped (can happen if you press the power
+         * button repeatedly) we might have read it. We should
+         * skip it if that's the case
+         */
+        if (len != -1 && strncmp(buf, screen_off_max_freq,
+                strlen(screen_off_max_freq)) != 0)
+            memcpy(scaling_max_freq, buf, sizeof(buf));
+        sysfs_write(SCALING_MAX_FREQ_PATH, screen_off_max_freq);
+    } else {
+        sysfs_write(SCALING_MAX_FREQ_PATH, scaling_max_freq);
+    }
+
     if (strncmp(governor, "interactive", 11) == 0)
         sysfs_write("/sys/devices/system/cpu/cpufreq/interactive/timer_rate",
                 on ? TIMER_RATE_SCREEN_ON : TIMER_RATE_SCREEN_OFF);
