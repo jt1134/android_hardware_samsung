@@ -36,17 +36,6 @@ enum Type {
     SEMCOVE
 };
 
-/*
- * murata:
- * 00:37:6d
- * 88:30:8a
- * 60:21:C0
- *
- * semcosh:
- * 5c:0a:5b
- *
- */
-
 int main() {
     FILE* file;
     FILE* cidfile;
@@ -76,7 +65,8 @@ int main() {
     if (strncasecmp(mac_addr_half, "00:37:6d", 9) == 0 ||
         strncasecmp(mac_addr_half, "88:30:8a", 9) == 0 ||
         strncasecmp(mac_addr_half, "20:02:af", 9) == 0 ||
-        strncasecmp(mac_addr_half, "60:21:C0", 9) == 0) {
+        strncasecmp(mac_addr_half, "5c:f8:a1", 9) == 0 ||
+        strncasecmp(mac_addr_half, "60:21:c0", 9) == 0) {
         type = MURATA;
     }
 
@@ -127,8 +117,8 @@ int main() {
         amode = S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH;
         ret = chmod(CID_PATH, amode);
 
-        char* chown_cmd = (char*) malloc(strlen("chown system ") + strlen(CID_PATH));
-        char* chgrp_cmd = (char*) malloc(strlen("chgrp system ") + strlen(CID_PATH));
+        char* chown_cmd = (char*) malloc(strlen("chown system ") + strlen(CID_PATH) + 1);
+        char* chgrp_cmd = (char*) malloc(strlen("chgrp system ") + strlen(CID_PATH) + 1);
         sprintf(chown_cmd, "chown system %s", CID_PATH);
         sprintf(chgrp_cmd, "chgrp system %s", CID_PATH);
         system(chown_cmd);
